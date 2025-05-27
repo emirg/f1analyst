@@ -8,6 +8,8 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import pathlib
+from cachetools import LRUCache, cachedmethod
+from operator import attrgetter
 
 # Load environment variables
 load_dotenv()
@@ -15,9 +17,11 @@ load_dotenv()
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 openai_model = os.getenv('OPENAI_MODEL')
+cache = LRUCache(maxsize=50)
 
 class F1AnalysisBot:
     def __init__(self):
+        self._cache = LRUCache(maxsize=50)
         # Create cache directory if it doesn't exist
         cache_dir = pathlib.Path('data/cache')
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -27,6 +31,7 @@ class F1AnalysisBot:
         # Set up plotting style
         fastf1.plotting.setup_mpl(color_scheme='fastf1', misc_mpl_mods=False)
         
+    @cachedmethod(attrgetter('_cache'))
     def get_session_data(self, year, gp, session):
         """Fetch session data for a specific Grand Prix"""
         try:
