@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+import fastf1.events
 from f1_analysis_bot import F1AnalysisBot
 import fastf1
 import pandas as pd
@@ -52,6 +53,10 @@ def get_drivers_from_first_race(year: int) -> tuple[list[str], list[str]]:
     except Exception:
         return [], []
 
+@cached(cache)
+def get_event_schedule_cached(year: int) -> fastf1.events.EventSchedule:
+    return fastf1.get_event_schedule(year)
+
 @app.post("/compare-drivers", response_model=DriverComparisonResponse)
 async def compare_drivers(request: CompareDriversRequest):
     try:
@@ -81,7 +86,7 @@ async def compare_drivers(request: CompareDriversRequest):
 async def get_year_data(year: int = Query(..., description="Year to get data for")):
     try:
         drivers, driver_names = get_drivers_from_first_race(year)
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_event_schedule_cached(year)
 
         return YearDataResponse(
             grandPrix=schedule['EventName'].tolist(),
@@ -95,7 +100,7 @@ async def get_year_data(year: int = Query(..., description="Year to get data for
 @app.get("/get-year-calendar", response_model=YearCalendarResponse)
 async def get_year_calendar(year: int = Query(..., description="Year to get calendar for")):
     try:
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_event_schedule_cached(year)
         
         calendar = [
             CalendarEvent(
@@ -120,7 +125,7 @@ async def get_gp_sessions(
     grand_prix: str = Query(..., description="Name of the Grand Prix")
 ):
     try:
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_event_schedule_cached(year)
         event = schedule[schedule['EventName'] == grand_prix]
         
         if event.empty:
