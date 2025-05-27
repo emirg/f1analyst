@@ -17,7 +17,6 @@ load_dotenv()
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 openai_model = os.getenv('OPENAI_MODEL')
-cache = LRUCache(maxsize=50)
 
 class F1AnalysisBot:
     def __init__(self):

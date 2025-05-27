@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1.events
-from f1_analysis_bot import F1AnalysisBot
+from agent.f1_analysis_bot import F1AnalysisBot
 import fastf1
 import pandas as pd
 import os
