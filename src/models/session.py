@@ -3,7 +3,7 @@ from typing import List
 
 class SessionDriversResponse(BaseModel):
     """Response model for session drivers data"""
-    grandPrix: str
+    grand_prix: str
     year: int
     drivers: List[str]
 

@@ -18,9 +18,9 @@ class SessionInfo(BaseModel):
 
 class CalendarEvent(BaseModel):
     """Model for calendar event information"""
-    roundNumber: int
-    eventName: str
-    eventFormat: str
+    round_number: int
+    event_name: str
+    event_format: str
 
     model_config = {
         "json_schema_extra": {
@@ -35,19 +35,19 @@ class CalendarEvent(BaseModel):
 class YearCalendarResponse(BaseModel):
     """Response model for year calendar data"""
     year: int
-    totalRounds: int
+    total_rounds: int
     calendar: List[CalendarEvent]
 
 class GPSessionsResponse(BaseModel):
     """Response model for Grand Prix sessions data"""
     year: int
-    grandPrix: str
-    eventFormat: str
+    grand_prix: str
+    event_format: str
     sessions: List[SessionInfo]
 
 class YearDataResponse(BaseModel):
     """Response model for year data"""
-    grandPrix: List[str]
+    grand_prix: List[str]
     sessions: List[str]
     drivers: List[str]
-    driverNames: List[str] 
+    driver_names: List[str] 

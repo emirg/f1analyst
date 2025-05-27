@@ -4,7 +4,7 @@ from typing import List, Optional
 class CompareDriversRequest(BaseModel):
     """Request model for comparing two drivers"""
     year: int
-    grandPrix: str
+    grand_prix: str
     session: str
     driver1: str
     driver2: str

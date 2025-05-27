@@ -68,7 +68,7 @@ async def compare_drivers(request: CompareDriversRequest):
 
         session = bot.get_session_data(
             request.year,
-            request.grandPrix,
+            request.grand_prix,
             request.session
         )
         
@@ -89,10 +89,10 @@ async def get_year_data(year: int = Query(..., description="Year to get data for
         schedule = get_event_schedule_cached(year)
 
         return YearDataResponse(
-            grandPrix=schedule['EventName'].tolist(),
+            grand_prix=schedule['EventName'].tolist(),
             sessions=['FP1', 'FP2', 'FP3', 'Q1', 'Q2', 'Q3', 'R'],
             drivers=drivers,
-            driverNames=driver_names
+            driver_names=driver_names
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -104,16 +104,16 @@ async def get_year_calendar(year: int = Query(..., description="Year to get cale
         
         calendar = [
             CalendarEvent(
-                roundNumber=int(event['RoundNumber']),
-                eventName=event['EventName'],
-                eventFormat=event['EventFormat']
+                round_number=int(event['RoundNumber']),
+                event_name=event['EventName'],
+                event_format=event['EventFormat']
             )
             for _, event in schedule.iterrows()
         ]
         
         return YearCalendarResponse(
             year=year,
-            totalRounds=len(calendar),
+            total_rounds=len(calendar),
             calendar=calendar
         )
     except Exception as e:
@@ -121,8 +121,8 @@ async def get_year_calendar(year: int = Query(..., description="Year to get cale
 
 @app.get("/get-gp-sessions", response_model=GPSessionsResponse)
 async def get_gp_sessions(
-    year: int = Query(..., description="Year of the Grand Prix"),
-    grand_prix: str = Query(..., description="Name of the Grand Prix")
+    year: int,
+    grand_prix: str = Depends(normalize_grand_prix),
 ):
     try:
         schedule = get_event_schedule_cached(year)
@@ -156,8 +156,8 @@ async def get_gp_sessions(
         
         return GPSessionsResponse(
             year=year,
-            grandPrix=grand_prix,
-            eventFormat=event['EventFormat'],
+            grand_prix=grand_prix,
+            event_format=event['EventFormat'],
             sessions=sessions
         )
     except Exception as e:
@@ -172,12 +172,12 @@ async def get_session_drivers(
     try:
         session_data = fastf1.get_session(year, grand_prix, session)
         session_data.load()
-        
+
         results = session_data.results
         drivers = sorted(list(set(results['Abbreviation'].tolist())))
 
         return SessionDriversResponse(
-            grandPrix=grand_prix,
+            grand_prix=grand_prix,
             year=year,
             drivers=drivers
         )
