@@ -30,12 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-cache = LRUCache(maxsize=50)
+drivers_cache = LRUCache(maxsize=50)
+event_schedule_cache = LRUCache(maxsize=50)
 
 USE_DUMMY_DATA = os.getenv('USE_DUMMY_DATA', 'true').lower() == 'true'
 bot = None if USE_DUMMY_DATA else F1AnalysisBot()
 
-@cached(cache)
+@cached(drivers_cache)
 def get_drivers_from_first_race(year: int) -> tuple[list[str], list[str]]:
     try:
         schedule = fastf1.get_event_schedule(year)
@@ -53,7 +54,7 @@ def get_drivers_from_first_race(year: int) -> tuple[list[str], list[str]]:
     except Exception:
         return [], []
 
-@cached(cache)
+@cached(event_schedule_cache)
 def get_event_schedule_cached(year: int) -> fastf1.events.EventSchedule:
     return fastf1.get_event_schedule(year)
 
