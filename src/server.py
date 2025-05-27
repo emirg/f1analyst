@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1.events
 from agent.f1_analysis_bot import F1AnalysisBot
 import fastf1
 import pandas as pd
 import os
-from utils import load_dummy_data
+from utils import load_dummy_data, normalize_grand_prix
 from cachetools import LRUCache, cached
 from datetime import datetime, timedelta
 from models import (
@@ -83,8 +83,11 @@ async def compare_drivers(request: CompareDriversRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/get-year-data", response_model=YearDataResponse)
-async def get_year_data(year: int = Query(..., description="Year to get data for")):
+@app.get(
+        "/year-data/{year}",
+        response_model=YearDataResponse
+)
+async def get_year_data(year: int):
     try:
         drivers, driver_names = get_drivers_from_first_race(year)
         schedule = get_event_schedule_cached(year)
@@ -98,8 +101,11 @@ async def get_year_data(year: int = Query(..., description="Year to get data for
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/get-year-calendar", response_model=YearCalendarResponse)
-async def get_year_calendar(year: int = Query(..., description="Year to get calendar for")):
+@app.get(
+        "/year-calendar/{year}",
+        response_model=YearCalendarResponse
+)
+async def get_year_calendar(year: int):
     try:
         schedule = get_event_schedule_cached(year)
         
@@ -120,7 +126,10 @@ async def get_year_calendar(year: int = Query(..., description="Year to get cale
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/get-gp-sessions", response_model=GPSessionsResponse)
+@app.get(
+    "/gp-sessions/{year}/{grand_prix}",
+    response_model=GPSessionsResponse,
+)
 async def get_gp_sessions(
     year: int,
     grand_prix: str = Depends(normalize_grand_prix),
@@ -161,14 +170,20 @@ async def get_gp_sessions(
             event_format=event['EventFormat'],
             sessions=sessions
         )
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@app.get("/get-session-drivers", response_model=SessionDriversResponse)
+@app.get(
+    "/session-drivers/{year}/{grand_prix}/{session}",
+    response_model=SessionDriversResponse,
+    tags=["Sessions"]
+)
 async def get_session_drivers(
-    year: int = Query(..., description="Year of the session"),
-    grand_prix: str = Query(..., description="Name of the Grand Prix"),
-    session: str = Query(..., description="Session type (e.g., FP1, Q1, R)")
+    year: int,
+    session: str,
+    grand_prix: str = Depends(normalize_grand_prix),
 ):
     try:
         session_data = fastf1.get_session(year, grand_prix, session)
