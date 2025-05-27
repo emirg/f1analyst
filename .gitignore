@@ -56,4 +56,4 @@ Thumbs.db
 *.bak
 *.tmp
 *.orig
-data/cache/*
+src/data/cache/*
