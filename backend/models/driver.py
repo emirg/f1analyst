@@ -21,15 +21,6 @@ class CompareDriversRequest(BaseModel):
         }
     }
 
-class DriverAnalysis(BaseModel):
-    """Model for driver analysis data"""
-    name: str
-    avg_lap: str
-    best_lap: str
-    consistency: str
-    fuel_data: Optional[dict] = None
-
 class DriverComparisonResponse(BaseModel):
     """Response model for driver comparison"""
-    driver1: DriverAnalysis
-    driver2: DriverAnalysis 
+    analysis: str

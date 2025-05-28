@@ -9,26 +9,15 @@ import {
     MenuItem,
     CircularProgress,
 } from '@mui/material';
-import { ComparisonFormData } from '../types/f1';
+import { ComparisonFormData, CalendarEvent, SessionInfo } from '../types/f1';
 import Markdown from 'react-markdown'
 
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-interface GPInfo {
-    roundNumber: number;
-    eventName: string;
-    eventFormat: string;
-}
-
-interface SessionInfo {
-    type: string;
-    date: string;
-}
-
 const DriverComparison: React.FC = () => {
     const [formData, setFormData] = useState<ComparisonFormData>({
         year: new Date().getFullYear(),
-        grandPrix: '',
+        grand_prix: '',
         session: '',
         driver1: '',
         driver2: '',
@@ -39,7 +28,7 @@ const DriverComparison: React.FC = () => {
     const [comparisonResult, setComparisonResult] = useState<string>('');
     
     // States for loaded data
-    const [grandPrixList, setGrandPrixList] = useState<GPInfo[]>([]);
+    const [grandPrixList, setGrandPrixList] = useState<CalendarEvent[]>([]);
     const [sessionsList, setSessionsList] = useState<SessionInfo[]>([]);
     const [driversList, setDriversList] = useState<string[]>([]);
 
@@ -50,7 +39,7 @@ const DriverComparison: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const response = await fetch(`http://localhost:5000/get-year-calendar?year=${formData.year}`);
+                const response = await fetch(`http://localhost:5000/year-calendar/${formData.year}`);
                 const data = await response.json();
                 if (data.error) {
                     console.error('Error fetching calendar:', data.error);
@@ -60,7 +49,7 @@ const DriverComparison: React.FC = () => {
                 // Reset selections when year changes
                 setFormData(prev => ({
                     ...prev,
-                    grandPrix: '',
+                    grand_prix: '',
                     session: '',
                     driver1: '',
                     driver2: ''
@@ -80,12 +69,12 @@ const DriverComparison: React.FC = () => {
     // Load sessions when Grand Prix changes
     useEffect(() => {
         const fetchSessions = async () => {
-            if (!formData.year || !formData.grandPrix) return;
+            if (!formData.year || !formData.grand_prix) return;
             
             setLoadingData(true);
             try {
                 const response = await fetch(
-                    `http://localhost:5000/get-gp-sessions?year=${formData.year}&grandPrix=${formData.grandPrix}`
+                    `http://localhost:5000/gp-sessions/${formData.year}/${formData.grand_prix}`
                 );
                 const data = await response.json();
                 if (data.error) {
@@ -109,17 +98,17 @@ const DriverComparison: React.FC = () => {
         };
 
         fetchSessions();
-    }, [formData.year, formData.grandPrix]);
+    }, [formData.year, formData.grand_prix]);
 
     // Load drivers when session changes
     useEffect(() => {
         const fetchDrivers = async () => {
-            if (!formData.year || !formData.grandPrix || !formData.session) return;
+            if (!formData.year || !formData.grand_prix || !formData.session) return;
             
             setLoadingData(true);
             try {
                 const response = await fetch(
-                    `http://localhost:5000/get-session-drivers?year=${formData.year}&grandPrix=${formData.grandPrix}&session=${formData.session}`
+                    `http://localhost:5000/session-drivers/${formData.year}/${formData.grand_prix}/${formData.session}`
                 );
                 const data = await response.json();
                 if (data.error) {
@@ -141,7 +130,7 @@ const DriverComparison: React.FC = () => {
         };
 
         fetchDrivers();
-    }, [formData.year, formData.grandPrix, formData.session]);
+    }, [formData.year, formData.grand_prix, formData.session]);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
@@ -178,8 +167,7 @@ const DriverComparison: React.FC = () => {
                 <Typography variant="h4" component="h1" gutterBottom>
                     F1 Driver Comparison
                 </Typography>
-                
-                <Paper sx={{ p: 3, mb: 3 }}>
+                <Paper sx={{ p: 3 }}>
                     <form onSubmit={handleSubmit}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -191,6 +179,7 @@ const DriverComparison: React.FC = () => {
                                         name="year"
                                         value={formData.year}
                                         onChange={handleInputChange}
+                                        disabled={loadingData}
                                     >
                                         {YEARS.map((year) => (
                                             <MenuItem key={year} value={year}>
@@ -199,20 +188,20 @@ const DriverComparison: React.FC = () => {
                                         ))}
                                     </TextField>
                                 </Box>
-                                
+
                                 <Box sx={{ flex: '1 1 300px' }}>
                                     <TextField
                                         select
                                         fullWidth
                                         label="Grand Prix"
-                                        name="grandPrix"
-                                        value={formData.grandPrix}
+                                        name="grand_prix"
+                                        value={formData.grand_prix}
                                         onChange={handleInputChange}
                                         disabled={loadingData || !formData.year}
                                     >
                                         {grandPrixList.map((gp) => (
-                                            <MenuItem key={gp.eventName} value={gp.eventName}>
-                                                {gp.eventName}
+                                            <MenuItem key={gp.event_name} value={gp.event_name}>
+                                                {gp.event_name}
                                             </MenuItem>
                                         ))}
                                     </TextField>
@@ -228,7 +217,7 @@ const DriverComparison: React.FC = () => {
                                         name="session"
                                         value={formData.session}
                                         onChange={handleInputChange}
-                                        disabled={loadingData || !formData.grandPrix}
+                                        disabled={loadingData || !formData.grand_prix}
                                     >
                                         {sessionsList.map((session) => (
                                             <MenuItem key={session.type} value={session.type}>
@@ -237,7 +226,7 @@ const DriverComparison: React.FC = () => {
                                         ))}
                                     </TextField>
                                 </Box>
-                                
+
                                 <Box sx={{ flex: '1 1 300px' }}>
                                     <TextField
                                         select
@@ -282,7 +271,7 @@ const DriverComparison: React.FC = () => {
                                         variant="contained"
                                         color="primary"
                                         fullWidth
-                                        disabled={loading || loadingData || !formData.grandPrix || !formData.session || !formData.driver1 || !formData.driver2}
+                                        disabled={loading || loadingData || !formData.grand_prix || !formData.session || !formData.driver1 || !formData.driver2}
                                     >
                                         {loading ? <CircularProgress size={24} /> : 'Compare Drivers'}
                                     </Button>
@@ -293,9 +282,9 @@ const DriverComparison: React.FC = () => {
                 </Paper>
 
                 {comparisonResult && (
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ p: 3, mt: 3 }}>
                         <Typography variant="h6" gutterBottom>
-                            Analysis Result
+                            Comparison Result
                         </Typography>
                         <Markdown>{comparisonResult}</Markdown>
                     </Paper>

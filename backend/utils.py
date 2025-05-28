@@ -1,5 +1,6 @@
 from fastapi import Path, HTTPException
 import json
+import os
 
 GRAND_PRIX_ALIASES = {
     "preseasontesting": "Pre-Season Testing",
@@ -37,7 +38,9 @@ GRAND_PRIX_ALIASES = {
 
 def load_dummy_data():
     try:
-        with open('dummy_data/compare-drivers.json', 'r') as f:
+        base_dir = os.path.dirname(__file__)
+        file_path = os.path.join(base_dir, '../dummy_data/compare-drivers.json')
+        with open(file_path, 'r') as f:
             return json.load(f)
     except Exception as e:
         print(f"Error loading dummy data: {e}")

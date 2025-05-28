@@ -2,19 +2,7 @@ from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 
-class SessionInfo(BaseModel):
-    """Model for session information"""
-    type: str
-    date: str
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "type": "FP1",
-                "date": "2024-05-24 10:30:00"
-            }
-        }
-    }
+from models.session import SessionInfo
 
 class CalendarEvent(BaseModel):
     """Model for calendar event information"""

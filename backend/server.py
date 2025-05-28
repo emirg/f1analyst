@@ -7,7 +7,8 @@ import pandas as pd
 import os
 from utils import load_dummy_data, normalize_grand_prix
 from cachetools import LRUCache, cached
-from datetime import datetime, timedelta
+from services.session import SessionService
+from services.driver import DriverService
 from models import (
     CompareDriversRequest,
     DriverComparisonResponse,
@@ -30,44 +31,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-drivers_cache = LRUCache(maxsize=50)
 event_schedule_cache = LRUCache(maxsize=50)
 
 USE_DUMMY_DATA = os.getenv('USE_DUMMY_DATA', 'true').lower() == 'true'
 bot = None if USE_DUMMY_DATA else F1AnalysisBot()
-
-@cached(drivers_cache)
-def get_drivers_from_first_race(year: int) -> tuple[list[str], list[str]]:
-    try:
-        schedule = fastf1.get_event_schedule(year)
-        for _, event in schedule.iterrows():
-            try:
-                session = fastf1.get_session(year, event['RoundNumber'], 'R')
-                session.load()
-                if session.results is not None:
-                    drivers = session.results['Abbreviation'].unique().tolist()
-                    names = session.results['FullName'].unique().tolist()
-                    return drivers, names
-            except Exception:
-                continue
-        return [], []
-    except Exception:
-        return [], []
+session_service = SessionService()
+driver_service = DriverService()
 
 @cached(event_schedule_cache)
 def get_event_schedule_cached(year: int) -> fastf1.events.EventSchedule:
     return fastf1.get_event_schedule(year)
 
-@app.post("/compare-drivers", response_model=DriverComparisonResponse)
+@app.post("/compare-drivers", response_model=DriverComparisonResponse, tags=["Agent"]) 
 async def compare_drivers(request: CompareDriversRequest):
     try:
+        # Just for dev testing, to avoid using OpenAI credits
         if USE_DUMMY_DATA:
             dummy_data = load_dummy_data()
             if "error" in dummy_data:
                 raise HTTPException(status_code=500, detail=dummy_data["error"])
-            return dummy_data['analysis']
+            return DriverComparisonResponse(analysis=dummy_data['analysis'])
 
-        session = bot.get_session_data(
+        session = session_service.get_session_data(
             request.year,
             request.grand_prix,
             request.session
@@ -78,8 +63,8 @@ async def compare_drivers(request: CompareDriversRequest):
             request.driver1,
             request.driver2
         )
-
-        return analysis
+        
+        return DriverComparisonResponse(analysis=analysis)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -89,7 +74,7 @@ async def compare_drivers(request: CompareDriversRequest):
 )
 async def get_year_data(year: int):
     try:
-        drivers, driver_names = get_drivers_from_first_race(year)
+        drivers, driver_names = driver_service.get_drivers_from_first_race(year)
         schedule = get_event_schedule_cached(year)
 
         return YearDataResponse(
@@ -103,7 +88,8 @@ async def get_year_data(year: int):
 
 @app.get(
         "/year-calendar/{year}",
-        response_model=YearCalendarResponse
+        response_model=YearCalendarResponse,
+        tags=["Calendar"]
 )
 async def get_year_calendar(year: int):
     try:
@@ -129,6 +115,7 @@ async def get_year_calendar(year: int):
 @app.get(
     "/gp-sessions/{year}/{grand_prix}",
     response_model=GPSessionsResponse,
+    tags=["Sessions"]
 )
 async def get_gp_sessions(
     year: int,
@@ -178,7 +165,7 @@ async def get_gp_sessions(
 @app.get(
     "/session-drivers/{year}/{grand_prix}/{session}",
     response_model=SessionDriversResponse,
-    tags=["Sessions"]
+    tags=["Drivers"]
 )
 async def get_session_drivers(
     year: int,

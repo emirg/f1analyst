@@ -60,9 +60,9 @@ npm install
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-2. Start the Flask server:
+2. Start the FastAPI server:
 ```bash
-python src/app.py
+python backend/server.py
 ```
 
 The backend will be available at `http://localhost:5000`
@@ -81,9 +81,9 @@ The application will be available at `http://localhost:3000`
 ```
 f1-analyst/
 ├── frontend/          # React application
-├── src/               # Backend source code
-├── data/cache         # FastF1 cache
+├── backend/           # Backend source code
 ├── dummy_data/        # Sample data
+├── tests/             # Python tests
 └── requirements.txt   # Python dependencies
 ```
 
@@ -91,7 +91,7 @@ f1-analyst/
 
 - Backend:
   - FastF1: F1 data API
-  - Flask: Web framework
+  - FastAPI: Web framework
   - Pandas: Data analysis
   - Matplotlib/Seaborn: Data visualization
 
@@ -99,10 +99,6 @@ f1-analyst/
   - React
   - TypeScript
   - Material-UI
-
-## Contributing
-
-Contributions are welcome. Please open an issue to discuss proposed changes before making a pull request.
 
 ## License
 
