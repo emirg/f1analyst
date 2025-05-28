@@ -1,3 +1,4 @@
+from typing import Any, Dict, Optional
 import fastf1
 import fastf1.plotting
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 import pathlib
 from cachetools import LRUCache, cachedmethod
 from operator import attrgetter
+from services.session import SessionService
 
 # Load environment variables
 load_dotenv()
@@ -19,7 +21,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 openai_model = os.getenv('OPENAI_MODEL')
 
 class F1AnalysisBot:
-    def __init__(self):
+    def __init__(self) -> None:
         self._cache = LRUCache(maxsize=50)
         # Create cache directory if it doesn't exist
         cache_dir = pathlib.Path('data/cache')
@@ -30,20 +32,7 @@ class F1AnalysisBot:
         # Set up plotting style
         fastf1.plotting.setup_mpl(color_scheme='fastf1', misc_mpl_mods=False)
         
-    @cachedmethod(attrgetter('_cache'))
-    def get_session_data(self, year, gp, session):
-        """Fetch session data for a specific Grand Prix"""
-        try:
-            session = fastf1.get_session(year, gp, session)
-            session.load()
-            return session
-        except Exception as e:
-            print(f"Error loading session data: {str(e)}")
-            print("Please ensure you're using a valid year, Grand Prix name, and session type.")
-            print("Example: year=2025, gp='Monaco', session='FP1'")
-            raise
-    
-    def analyze_driver_performance(self, session, driver_code):
+    def analyze_driver_performance(self, session: fastf1.core.Session, driver_code: str) -> str:
         """Analyze detailed performance metrics for a specific driver"""
         driver_laps = session.laps.pick_drivers(driver_code)
         
@@ -110,7 +99,7 @@ class F1AnalysisBot:
         
         return response.choices[0].message.content
     
-    def predict_race_pace(self, session, driver_code):
+    def predict_race_pace(self, session: fastf1.core.Session, driver_code: str) -> str:
         """Predict race pace based on practice/qualifying data"""
         driver_laps = session.laps.pick_drivers(driver_code)
         
@@ -150,7 +139,7 @@ class F1AnalysisBot:
         
         return response.choices[0].message.content
     
-    def _calculate_tire_degradation(self, laps):
+    def _calculate_tire_degradation(self, laps: pd.DataFrame) -> float:
         """Calculate tire degradation factor from lap times"""
         if len(laps) < 2:
             return 0
@@ -161,7 +150,7 @@ class F1AnalysisBot:
         slope, _ = np.polyfit(x, lap_times, 1)
         return slope
     
-    def compare_drivers(self, session, driver1_code, driver2_code):
+    def compare_drivers(self, session: fastf1.core.Session, driver1_code: str, driver2_code: str) -> str:
         """Compare performance between two drivers"""
         driver1_laps = session.laps.pick_drivers(driver1_code)
         driver2_laps = session.laps.pick_drivers(driver2_code)
@@ -234,10 +223,11 @@ class F1AnalysisBot:
 def main():
     # Initialize the bot
     bot = F1AnalysisBot()
+    session_service = SessionService()
     
     # Example usage with valid year
     try:
-        session = bot.get_session_data(2025, 'Monaco', 'FP1')
+        session = session_service.get_session_data(2025, 'Monaco', 'FP1')
         
         # Analyze a driver's performance
         driver_analysis = bot.analyze_driver_performance(session, 'COL')
@@ -257,4 +247,4 @@ def main():
         print(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
-    main() 
+    main()
