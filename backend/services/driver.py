@@ -9,13 +9,13 @@ class DriverService:
         fastf1.Cache.enable_cache('data/cache')
     
     @cachedmethod(attrgetter('_cache'))
-    def get_drivers_from_first_race(year: int) -> tuple[list[str], list[str]]:
+    def get_drivers_from_first_race(self, year: int) -> tuple[list[str], list[str]]:
         try:
             schedule = fastf1.get_event_schedule(year)
             for _, event in schedule.iterrows():
                 try:
                     session = fastf1.get_session(year, event['RoundNumber'], 'R')
-                    session.load()
+                    session.load(telemetry=False, laps=False, weather=False, messages=False)
                     if session.results is not None:
                         drivers = session.results['Abbreviation'].unique().tolist()
                         names = session.results['FullName'].unique().tolist()
@@ -25,3 +25,13 @@ class DriverService:
             return [], []
         except Exception:
             return [], []
+        
+    def get_drivers_abbreviations_from_session(self, session: fastf1.core.Session) -> list[str]:
+        if session.results is not None:
+            return sorted(list(set(session.results['Abbreviation'].tolist())))
+        return []
+    
+    def get_drivers_names_from_session(self, session: fastf1.core.Session) -> list[str]:
+        if session.results is not None:
+            return session.results['FullName'].unique().tolist()
+        return []

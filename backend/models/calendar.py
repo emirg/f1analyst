@@ -36,6 +36,5 @@ class GPSessionsResponse(BaseModel):
 class YearDataResponse(BaseModel):
     """Response model for year data"""
     grand_prix: List[str]
-    sessions: List[str]
     drivers: List[str]
     driver_names: List[str] 
