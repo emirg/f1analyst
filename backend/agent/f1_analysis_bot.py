@@ -17,8 +17,8 @@ from services.session import SessionService
 load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-openai_model = os.getenv('OPENAI_MODEL')
+OPENAI_API_KEY = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+OPENAI_MODEL = os.getenv('OPENAI_MODEL')
 
 class F1AnalysisBot:
     def __init__(self) -> None:
@@ -89,8 +89,8 @@ class F1AnalysisBot:
         5. Fuel efficiency analysis (if fuel data is available)
         """
         
-        response = client.chat.completions.create(
-            model=openai_model,
+        response = OPENAI_API_KEY.chat.completions.create(
+            model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are an expert F1 analyst with deep knowledge of racing metrics and performance analysis."},
                 {"role": "user", "content": prompt}
@@ -129,8 +129,8 @@ class F1AnalysisBot:
         4. Position prediction
         """
         
-        response = client.chat.completions.create(
-            model=openai_model,
+        response = OPENAI_API_KEY.chat.completions.create(
+            model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are an expert F1 strategist with deep knowledge of race pace analysis and tire management."},
                 {"role": "user", "content": prompt}
@@ -210,8 +210,8 @@ class F1AnalysisBot:
         5. Fuel efficiency comparison (if fuel data is available)
         """
         
-        response = client.chat.completions.create(
-            model=openai_model,
+        response = OPENAI_API_KEY.chat.completions.create(
+            model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are an expert F1 analyst specializing in driver comparisons and performance analysis."},
                 {"role": "user", "content": prompt}
