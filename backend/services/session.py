@@ -3,13 +3,16 @@ from operator import attrgetter
 import fastf1
 import pandas as pd
 from enum import Enum
-from typing import Optional
 
 class SessionDataProfile(Enum):
-    """Different profiles for loading session data"""
-    BASIC = "basic"  # Only essential data from laps for basic analysis
-    STANDARD = "standard"  # Standard data including laps, telemetry and weather
-    FULL = "full"  # All available data including messages
+    """Different profiles for loading session data
+    - BASIC: Only essential data from laps for basic analysis. Does not include telemetry, laps, weather and messages data
+    - STANDARD: Standard data including laps, telemetry and weather
+    - FULL: All available data including messages
+    """
+    BASIC = "basic"
+    STANDARD = "standard"
+    FULL = "full"
 
 class SessionService:
     def __init__(self):
@@ -50,6 +53,7 @@ class SessionService:
             self.print_exception_message(e)
 
     def get_basic_session_data(self, year: int, gp: str, session: str) -> fastf1.core.Session:
+        """Get basic data, not including telemetry, laps, weather and messages data"""
         try:
             session = fastf1.get_session(year, gp, session)
             session.load(**self._get_load_params(SessionDataProfile.BASIC))
@@ -58,6 +62,7 @@ class SessionService:
             self.print_exception_message(e)
 
     def get_standard_session_data(self, year: int, gp: str, session: str) -> fastf1.core.Session:
+        """Get basic data, laps data, telemetry data and weather data. It does not include messages data"""
         try:
             session = fastf1.get_session(year, gp, session)
             session.load(**self._get_load_params(SessionDataProfile.STANDARD))
@@ -66,6 +71,7 @@ class SessionService:
             self.print_exception_message(e)
 
     def get_full_session_data(self, year: int, gp: str, session: str) -> fastf1.core.Session:
+        """Get standard data and messages data. It includes as much data as available"""
         try:
             session = fastf1.get_session(year, gp, session)
             session.load(**self._get_load_params(SessionDataProfile.FULL))
