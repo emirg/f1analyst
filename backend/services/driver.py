@@ -26,12 +26,12 @@ class DriverService:
         except Exception:
             return [], []
         
-    def get_drivers_abbreviations_from_session(self, session: fastf1.core.Session) -> list[str]:
-        if session.results is not None:
-            return sorted(list(set(session.results['Abbreviation'].tolist())))
-        return []
+    def get_drivers_abbreviations_from_session(self, session: fastf1.core.Session | None) -> list[str]:
+        if session is None or session.results is None:
+            return []
+        return sorted(list(set(session.results['Abbreviation'].tolist())))
     
-    def get_drivers_names_from_session(self, session: fastf1.core.Session) -> list[str]:
-        if session.results is not None:
-            return session.results['FullName'].unique().tolist()
-        return []
+    def get_drivers_names_from_session(self, session: fastf1.core.Session | None) -> list[str]:
+        if session is None or session.results is None:
+            return []
+        return session.results['FullName'].unique().tolist()
