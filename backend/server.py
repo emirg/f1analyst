@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 import fastf1
 import fastf1.events
-from agent.f1_analysis_bot import F1AnalysisBot
+from backend.app.agent.f1_analysis_bot import F1AnalysisBot
 import pandas as pd
 from utils import load_dummy_data, normalize_grand_prix
 from cachetools import LRUCache, cached, TTLCache
@@ -121,8 +121,8 @@ async def get_year_data(year: int):
 @app.get(
         "/year-calendar/{year}",
         response_model=YearCalendarResponse,
-        tags=["Calendar"],
-        response_class=JSONResponse
+        response_class=JSONResponse,
+        tags=["Calendar"]
 )
 async def get_year_calendar(year: int):
     try:
