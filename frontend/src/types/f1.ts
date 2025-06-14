@@ -42,6 +42,7 @@ export interface CalendarEvent {
     round_number: number;
     event_name: string;
     event_format: string;
+    meeting_key: string;
 }
 
 export interface YearCalendarResponse {
@@ -53,6 +54,7 @@ export interface YearCalendarResponse {
 export interface SessionInfo {
     type: string;
     date: string;
+    session_key: string;
 }
 
 export interface GPSessionsResponse {

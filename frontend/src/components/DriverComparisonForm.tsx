@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { ComparisonFormData, CalendarEvent, SessionInfo } from '../types/f1';
 import ComparisonResult from './ComparisonResult';
+import { fetchYearCalendar, fetchGPSessions, fetchSessionDrivers } from '../services/openF1Api';
 
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
@@ -28,7 +29,7 @@ const DriverComparisonForm: React.FC = () => {
     // States for loaded data
     const [grandPrixList, setGrandPrixList] = useState<CalendarEvent[]>([]);
     const [sessionsList, setSessionsList] = useState<SessionInfo[]>([]);
-    const [driversList, setDriversList] = useState<string[]>([]);
+    const [driversList, setDriversList] = useState<Array<{fullName: string, nameAcronym: string}>>([]);
 
     // Load Grand Prix when year changes
     useEffect(() => {
@@ -37,13 +38,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/calendar/year-calendar/${formData.year}`);
-                const data = await response.json();
-                if (data.error) {
-                    console.error('Error fetching calendar:', data.error);
-                    return;
-                }
-                setGrandPrixList(data.calendar);
+                const calendar = await fetchYearCalendar(formData.year);
+                setGrandPrixList(calendar);
                 // Reset selections when year changes
                 setFormData(prev => ({
                     ...prev,
@@ -71,15 +67,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const response = await fetch(
-                    `http://localhost:8000/api/v1/calendar/gp-sessions/${formData.year}/${formData.grand_prix}`
-                );
-                const data = await response.json();
-                if (data.error) {
-                    console.error('Error fetching sessions:', data.error);
-                    return;
-                }
-                setSessionsList(data.sessions);
+                const sessions = await fetchGPSessions(formData.year, formData.grand_prix);
+                setSessionsList(sessions);
                 // Reset session and driver selections
                 setFormData(prev => ({
                     ...prev,
@@ -105,15 +94,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const response = await fetch(
-                    `http://localhost:8000/api/v1/calendar/session-drivers/${formData.year}/${formData.grand_prix}/${formData.session}`
-                );
-                const data = await response.json();
-                if (data.error) {
-                    console.error('Error fetching drivers:', data.error);
-                    return;
-                }
-                setDriversList(data.drivers);
+                const drivers = await fetchSessionDrivers(formData.grand_prix, formData.session);
+                setDriversList(drivers);
                 // Reset driver selections
                 setFormData(prev => ({
                     ...prev,
@@ -142,12 +124,29 @@ const DriverComparisonForm: React.FC = () => {
         event.preventDefault();
         setLoading(true);
         try {
+            // Find the selected Grand Prix and Session objects
+            const selectedGP = grandPrixList.find(gp => gp.meeting_key === formData.grand_prix);
+            const selectedSession = sessionsList.find(session => session.session_key === formData.session);
+            
+            // Find the selected drivers to get their name_acronym
+            const selectedDriver1 = driversList.find(driver => driver.fullName === formData.driver1);
+            const selectedDriver2 = driversList.find(driver => driver.fullName === formData.driver2);
+
+            // Create the request body with the names instead of keys
+            const requestBody = {
+                ...formData,
+                grand_prix: selectedGP?.event_name || '',
+                session: selectedSession?.type || '',
+                driver1: selectedDriver1?.nameAcronym || '',
+                driver2: selectedDriver2?.nameAcronym || ''
+            };
+
             const response = await fetch('http://localhost:8000/api/v1/agent/compare-drivers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(requestBody),
             });
             const data = await response.json();
             setComparisonResult(data.analysis);
@@ -160,107 +159,107 @@ const DriverComparisonForm: React.FC = () => {
     };
 
     return (
-            <Box maxWidth="sm" sx={{ mx: 24, my: 10 }}>
-                <Typography variant="h3" component="h1" gutterBottom sx={{my: 3}}>
-                    Compare Drivers
-                </Typography>
-               
-                    <form onSubmit={handleSubmit}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <TextField
-                                select
-                                fullWidth
-                                label="Year"
-                                name="year"
-                                value={formData.year}
-                                onChange={handleInputChange}
-                                disabled={loadingData}
-                            >
-                                {YEARS.map((year) => (
-                                    <MenuItem key={year} value={year}>
-                                        {year}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+        <Box maxWidth="sm" sx={{ mx: 24, my: 10 }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{my: 3}}>
+                Compare Drivers
+            </Typography>
+           
+            <form onSubmit={handleSubmit}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Year"
+                        name="year"
+                        value={formData.year}
+                        onChange={handleInputChange}
+                        disabled={loadingData}
+                    >
+                        {YEARS.map((year) => (
+                            <MenuItem key={year} value={year}>
+                                {year}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                fullWidth
-                                label="Grand Prix"
-                                name="grand_prix"
-                                value={formData.grand_prix}
-                                onChange={handleInputChange}
-                                disabled={loadingData || !formData.year}
-                            >
-                                {grandPrixList.map((gp) => (
-                                    <MenuItem key={gp.event_name} value={gp.event_name}>
-                                        {gp.event_name}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Grand Prix"
+                        name="grand_prix"
+                        value={formData.grand_prix}
+                        onChange={handleInputChange}
+                        disabled={loadingData || !formData.year}
+                    >
+                        {grandPrixList.map((gp) => (
+                            <MenuItem key={gp.meeting_key} value={gp.meeting_key}>
+                                {gp.event_name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                fullWidth
-                                label="Session"
-                                name="session"
-                                value={formData.session}
-                                onChange={handleInputChange}
-                                disabled={loadingData || !formData.grand_prix}
-                            >
-                                {sessionsList.map((session) => (
-                                    <MenuItem key={session.type} value={session.type}>
-                                        {session.type}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Session"
+                        name="session"
+                        value={formData.session}
+                        onChange={handleInputChange}
+                        disabled={loadingData || !formData.grand_prix}
+                    >
+                        {sessionsList.map((session) => (
+                            <MenuItem key={session.session_key} value={session.session_key}>
+                                {session.type}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                fullWidth
-                                label="First Driver"
-                                name="driver1"
-                                value={formData.driver1}
-                                onChange={handleInputChange}
-                                disabled={loadingData || !formData.session}
-                            >
-                                {driversList.map((driver) => (
-                                    <MenuItem key={driver} value={driver}>
-                                        {driver}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                    <TextField
+                        select
+                        fullWidth
+                        label="First Driver"
+                        name="driver1"
+                        value={formData.driver1}
+                        onChange={handleInputChange}
+                        disabled={loadingData || !formData.session}
+                    >
+                        {driversList.map((driver) => (
+                            <MenuItem key={driver.fullName} value={driver.fullName}>
+                                {driver.fullName}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                fullWidth
-                                label="Second Driver"
-                                name="driver2"
-                                value={formData.driver2}
-                                onChange={handleInputChange}
-                                disabled={loadingData || !formData.session}
-                            >
-                                {driversList.map((driver) => (
-                                    <MenuItem key={driver} value={driver}>
-                                        {driver}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                            
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                fullWidth
-                                disabled={loading || loadingData || !formData.grand_prix || !formData.session || !formData.driver1 || !formData.driver2}
-                            >
-                                {loading ? <CircularProgress size={24} /> : 'Compare Drivers'}
-                            </Button>
-                        </Box>
-                    </form>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Second Driver"
+                        name="driver2"
+                        value={formData.driver2}
+                        onChange={handleInputChange}
+                        disabled={loadingData || !formData.session}
+                    >
+                        {driversList.map((driver) => (
+                            <MenuItem key={driver.fullName} value={driver.fullName}>
+                                {driver.fullName}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                    
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        disabled={loading || loadingData || !formData.grand_prix || !formData.session || !formData.driver1 || !formData.driver2}
+                    >
+                        {loading ? <CircularProgress size={24} /> : 'Compare Drivers'}
+                    </Button>
+                </Box>
+            </form>
 
-                <ComparisonResult result={comparisonResult} />
-            </Box>
+            <ComparisonResult result={comparisonResult} />
+        </Box>
     );
 };
 
