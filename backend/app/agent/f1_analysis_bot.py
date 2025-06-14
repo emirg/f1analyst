@@ -1,8 +1,6 @@
 from typing import Any, Dict, Optional
 import fastf1
 import fastf1.plotting
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
 from openai import OpenAI
@@ -11,7 +9,7 @@ from dotenv import load_dotenv
 import pathlib
 from cachetools import LRUCache, cachedmethod
 from operator import attrgetter
-from services.session import SessionService
+from app.services.session import SessionService
 
 # Load environment variables
 load_dotenv()
@@ -155,19 +153,33 @@ class F1AnalysisBot:
         driver1_laps = session.laps.pick_drivers(driver1_code)
         driver2_laps = session.laps.pick_drivers(driver2_code)
         
+        # Calculate race pace metrics
+        driver1_long_run_laps = driver1_laps[driver1_laps['LapTime'] > driver1_laps['LapTime'].quantile(0.2)]
+        driver1_race_pace = driver1_long_run_laps['LapTime'].mean()
+        driver1_tire_degradation = self._calculate_tire_degradation(driver1_long_run_laps)
+        
+        # Calculate race pace metrics
+        driver2_long_run_laps = driver2_laps[driver2_laps['LapTime'] > driver2_laps['LapTime'].quantile(0.2)]
+        driver2_race_pace = driver2_long_run_laps['LapTime'].mean()
+        driver2_tire_degradation = self._calculate_tire_degradation(driver2_long_run_laps)
+        
         # Calculate comparison metrics
         comparison = {
             'driver1': {
                 'name': session.get_driver(driver1_code)['Abbreviation'],
                 'avg_lap': str(driver1_laps['LapTime'].mean()),
                 'best_lap': str(driver1_laps['LapTime'].min()),
-                'consistency': str(driver1_laps['LapTime'].std())
+                'consistency': str(driver1_laps['LapTime'].std()),
+                'race_pace': str(driver1_race_pace),
+                'tire_degradation': driver1_tire_degradation
             },
             'driver2': {
                 'name': session.get_driver(driver2_code)['Abbreviation'],
                 'avg_lap': str(driver2_laps['LapTime'].mean()),
                 'best_lap': str(driver2_laps['LapTime'].min()),
-                'consistency': str(driver2_laps['LapTime'].std())
+                'consistency': str(driver2_laps['LapTime'].std()),
+                'race_pace': str(driver2_race_pace),
+                'tire_degradation': driver2_tire_degradation
             }
         }
 
@@ -194,12 +206,16 @@ class F1AnalysisBot:
         - Average Lap Time: {comparison['driver1']['avg_lap']}
         - Best Lap Time: {comparison['driver1']['best_lap']}
         - Consistency: {comparison['driver1']['consistency']}
+        - Race Pace: {comparison['driver1']['race_pace']}
+        - Tire Degradation: {comparison['driver1']['tire_degradation']}
         - Fuel Data: {comparison['driver1'].get('fuel_data', 'Not available')}
         
         Driver 2 ({comparison['driver2']['name']}):
         - Average Lap Time: {comparison['driver2']['avg_lap']}
         - Best Lap Time: {comparison['driver2']['best_lap']}
         - Consistency: {comparison['driver2']['consistency']}
+        - Race Pace: {comparison['driver2']['race_pace']}
+        - Tire Degradation: {comparison['driver2']['tire_degradation']}        
         - Fuel Data: {comparison['driver2'].get('fuel_data', 'Not available')}
         
         Please provide:
@@ -213,7 +229,7 @@ class F1AnalysisBot:
         response = OPENAI_API_KEY.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "You are an expert F1 analyst specializing in driver comparisons and performance analysis."},
+                {"role": "system", "content": "You are an expert F1 analyst specializing in driver comparisons and performance analysis, with deep knowledge of race pace analysis and tire management."},
                 {"role": "user", "content": prompt}
             ]
         )

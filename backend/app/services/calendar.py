@@ -5,6 +5,8 @@ from cachetools import TTLCache
 from app.core.config import settings
 from app.schemas.f1 import GPSessionsResponse, SessionInfo
 
+_calendar_service_instance = None
+
 class CalendarService:
     def __init__(self):
         self.event_schedule_cache = TTLCache(
@@ -80,3 +82,9 @@ class CalendarService:
         
         self.session_data_cache[cache_key] = session_data
         return session_data 
+    
+def get_calendar_service() -> CalendarService:
+    global _calendar_service_instance
+    if _calendar_service_instance is None:
+        _calendar_service_instance = CalendarService()
+    return _calendar_service_instance

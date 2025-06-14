@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.schemas.f1 import CompareDriversRequest, DriverComparisonResponse
-from app.services.agent import AgentService
+from app.services.agent import AgentService, get_agent_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -14,7 +14,7 @@ router = APIRouter()
 )
 async def compare_drivers(
     request: CompareDriversRequest,
-    agent_service: AgentService = Depends()
+    agent_service: AgentService = Depends(get_agent_service)
 ):
     try:
         if settings.USE_DUMMY_DATA:

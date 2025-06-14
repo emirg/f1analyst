@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.schemas.f1 import YearCalendarResponse, GPSessionsResponse, SessionDriversResponse, YearDataResponse
-from app.services.calendar import CalendarService
-from app.services.driver import DriverService
+from app.services.calendar import CalendarService, get_calendar_service
+from app.services.driver import DriverService, get_driver_service
 from app.core.config import settings
+from app.utils import normalize_grand_prix
 
 router = APIRouter()
 
@@ -15,8 +16,8 @@ router = APIRouter()
 )
 async def get_year_data(
     year: int,
-    calendar_service: CalendarService = Depends(),
-    driver_service: DriverService = Depends()
+    calendar_service: CalendarService = Depends(get_calendar_service),
+    driver_service: DriverService = Depends(get_driver_service)
 ):
     try:
         drivers, driver_names = driver_service.get_drivers_from_first_race(year)
@@ -38,7 +39,7 @@ async def get_year_data(
 )
 async def get_year_calendar(
     year: int,
-    calendar_service: CalendarService = Depends()
+    calendar_service: CalendarService = Depends(get_calendar_service)
 ):
     try:
         calendar = await calendar_service.get_calendar(year)
@@ -58,8 +59,8 @@ async def get_year_calendar(
 )
 async def get_gp_sessions(
     year: int,
-    grand_prix: str,
-    calendar_service: CalendarService = Depends()
+    grand_prix: str = Depends(normalize_grand_prix),
+    calendar_service: CalendarService = Depends(get_calendar_service)
 ):
     try:
         sessions = await calendar_service.get_gp_sessions(year, grand_prix)
@@ -75,10 +76,10 @@ async def get_gp_sessions(
 )
 async def get_session_drivers(
     year: int,
-    grand_prix: str,
     session: str,
-    calendar_service: CalendarService = Depends(),
-    driver_service: DriverService = Depends()
+    grand_prix: str = Depends(normalize_grand_prix),
+    calendar_service: CalendarService = Depends(get_calendar_service),
+    driver_service: DriverService = Depends(get_driver_service)
 ):
     try:
         session_data = await calendar_service.get_session_data(year, grand_prix, session)

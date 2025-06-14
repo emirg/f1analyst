@@ -37,7 +37,7 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const response = await fetch(`http://localhost:5000/year-calendar/${formData.year}`);
+                const response = await fetch(`http://localhost:8000/api/v1/calendar/year-calendar/${formData.year}`);
                 const data = await response.json();
                 if (data.error) {
                     console.error('Error fetching calendar:', data.error);
@@ -72,7 +72,7 @@ const DriverComparisonForm: React.FC = () => {
             setLoadingData(true);
             try {
                 const response = await fetch(
-                    `http://localhost:5000/gp-sessions/${formData.year}/${formData.grand_prix}`
+                    `http://localhost:8000/api/v1/calendar/gp-sessions/${formData.year}/${formData.grand_prix}`
                 );
                 const data = await response.json();
                 if (data.error) {
@@ -106,7 +106,7 @@ const DriverComparisonForm: React.FC = () => {
             setLoadingData(true);
             try {
                 const response = await fetch(
-                    `http://localhost:5000/session-drivers/${formData.year}/${formData.grand_prix}/${formData.session}`
+                    `http://localhost:8000/api/v1/calendar/session-drivers/${formData.year}/${formData.grand_prix}/${formData.session}`
                 );
                 const data = await response.json();
                 if (data.error) {
@@ -142,7 +142,7 @@ const DriverComparisonForm: React.FC = () => {
         event.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/compare-drivers', {
+            const response = await fetch('http://localhost:8000/api/v1/agent/compare-drivers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -28,3 +28,10 @@ app.include_router(calendar.router, prefix=f"{settings.API_V1_STR}/calendar", ta
 @app.get("/")
 async def root():
     return {"message": "Welcome to F1 Analyst API"} 
+
+@app.get("/health")
+async def healthcheck():
+    return {
+        "status": "healthy",
+        "version": "1.0.0"
+    } 

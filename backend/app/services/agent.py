@@ -3,6 +3,8 @@ from app.core.config import settings
 from app.services.calendar import CalendarService
 from app.agent.f1_analysis_bot import F1AnalysisBot
 
+_agent_service_instance = None
+
 class AgentService:
     def __init__(self):
         self.bot = None if settings.USE_DUMMY_DATA else F1AnalysisBot()
@@ -47,3 +49,9 @@ class AgentService:
         self.driver_comparison_cache[cache_key] = analysis
         
         return analysis 
+
+def get_agent_service() -> AgentService:
+    global _agent_service_instance
+    if _agent_service_instance is None:
+        _agent_service_instance = AgentService()
+    return _agent_service_instance
