@@ -1,6 +1,6 @@
 import pytest
 from fastapi import HTTPException
-from backend.utils import load_dummy_data, normalize_grand_prix, GRAND_PRIX_ALIASES
+from backend.app.utils import load_dummy_data, normalize_grand_prix, GRAND_PRIX_ALIASES
 
 def test_load_dummy_data_success():
     """Test successful loading of dummy data"""

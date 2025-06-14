@@ -2,11 +2,11 @@ from cachetools import LRUCache, cachedmethod
 from operator import attrgetter
 import fastf1
 
+_driver_service_instance = None
+
 class DriverService:
     def __init__(self):
         self._cache = LRUCache(maxsize=50)
-        # Enable FastF1 cache
-        fastf1.Cache.enable_cache('data/cache')
     
     @cachedmethod(attrgetter('_cache'))
     def get_drivers_from_first_race(self, year: int) -> tuple[list[str], list[str]]:
@@ -25,7 +25,7 @@ class DriverService:
             return [], []
         except Exception:
             return [], []
-        
+
     def get_drivers_abbreviations_from_session(self, session: fastf1.core.Session | None) -> list[str]:
         if session is None or session.results is None:
             return []
@@ -35,3 +35,9 @@ class DriverService:
         if session is None or session.results is None:
             return []
         return session.results['FullName'].unique().tolist()
+    
+def get_driver_service() -> DriverService:
+    global _driver_service_instance
+    if _driver_service_instance is None:
+        _driver_service_instance = DriverService()
+    return _driver_service_instance
