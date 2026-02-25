@@ -21,9 +21,9 @@ WORKDIR /app
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install uv and Python dependencies
+RUN pip install uv && \
+    uv pip install --system --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .

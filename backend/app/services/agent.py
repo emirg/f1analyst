@@ -2,6 +2,7 @@ from cachetools import TTLCache
 from app.core.config import settings
 from app.services.calendar import CalendarService
 from app.agent.f1_analysis_bot import F1AnalysisBot
+from app.services.cache_manager import get_cache_manager
 
 _agent_service_instance = None
 
@@ -9,10 +10,7 @@ class AgentService:
     def __init__(self):
         self.bot = None if settings.USE_DUMMY_DATA else F1AnalysisBot()
         self.calendar_service = CalendarService()
-        self.driver_comparison_cache = TTLCache(
-            maxsize=settings.DRIVER_COMPARISON_CACHE_SIZE,
-            ttl=settings.DRIVER_COMPARISON_CACHE_TTL
-        )
+        self.cache_manager = get_cache_manager()
 
     def get_dummy_data(self):
         # Implement dummy data logic here
@@ -28,15 +26,16 @@ class AgentService:
         driver1: str,
         driver2: str
     ) -> str:
-        # Create a cache key
-        cache_key = f"{year}_{grand_prix}_{session}_{driver1}_{driver2}"
+        # Create a cache key using the global cache manager
+        cache_key = self.cache_manager.generate_cache_key(year, grand_prix, session, driver1, driver2)
         
         # Check if we have a cached comparison
-        if cache_key in self.driver_comparison_cache:
-            return self.driver_comparison_cache[cache_key]
+        cached_result = self.cache_manager.get_comparison(cache_key)
+        if cached_result is not None:
+            return cached_result
 
-        # Get session data
-        session_data = await self.calendar_service.get_session_data(year, grand_prix, session)
+        # Get session data with telemetry only if needed for detailed analysis
+        session_data = await self.calendar_service.get_session_data(year, grand_prix, session, load_telemetry=True)
         
         # Compare drivers
         analysis = self.bot.compare_drivers(
@@ -45,8 +44,8 @@ class AgentService:
             driver2
         )
         
-        # Cache the result
-        self.driver_comparison_cache[cache_key] = analysis
+        # Cache the result using global cache manager
+        self.cache_manager.set_comparison(cache_key, analysis)
         
         return analysis 
 

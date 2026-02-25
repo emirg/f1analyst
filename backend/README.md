@@ -28,16 +28,23 @@ backend/
 
 ## Setup
 
-1. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+1.  **Install uv (recommended):**
+    First, install `uv`. You can use the following command:
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+    For other installation methods, see the [official `uv` documentation](https://astral.sh/uv#installation).
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2.  **Create and activate a virtual environment:**
+    ```bash
+    uv venv
+    source .venv/bin/activate  # On Windows use `.venv\\Scripts\\activate`
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    uv pip install -r requirements.txt
+    ```
 
 3. Create a `.env` file with the following variables:
 ```env

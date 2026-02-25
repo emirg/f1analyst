@@ -22,6 +22,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
 env.bak/
 venv.bak/
@@ -48,6 +49,8 @@ build/
 .vscode/
 *.sublime-project
 *.sublime-workspace
+.cursor
+.windsurf
 
 # === OS-specific ===
 .DS_Store
@@ -59,3 +62,4 @@ Thumbs.db
 *.orig
 data
 backend/data/*
+telemetry_analysis

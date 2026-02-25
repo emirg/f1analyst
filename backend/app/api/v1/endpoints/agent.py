@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.schemas.f1 import CompareDriversRequest, DriverComparisonResponse
 from app.services.agent import AgentService, get_agent_service
+from app.services.cache_manager import get_cache_manager
 from app.core.config import settings
 
 router = APIRouter()
@@ -33,4 +34,17 @@ async def compare_drivers(
         
         return DriverComparisonResponse(analysis=analysis)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/cache-stats")
+async def get_cache_stats():
+    """Get cache performance statistics"""
+    cache_manager = get_cache_manager()
+    return cache_manager.get_cache_stats()
+
+@router.post("/cache/clear")
+async def clear_cache(cache_type: str = None):
+    """Clear specific cache or all caches"""
+    cache_manager = get_cache_manager()
+    cache_manager.clear_cache(cache_type)
+    return {"message": f"Cache {'all' if not cache_type else cache_type} cleared successfully"} 

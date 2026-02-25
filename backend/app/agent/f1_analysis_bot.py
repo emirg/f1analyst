@@ -46,18 +46,20 @@ class F1AnalysisBot:
             'Sector3': driver_laps['Sector3Time'].mean()
         }
         
-        # Get fuel data from telemetry
+        # Get fuel data from telemetry (optimized - only if telemetry is available)
         fuel_data = {}
         try:
-            # Get telemetry for the first lap to check fuel at start
-            first_lap = driver_laps.iloc[0]
-            first_lap_tel = first_lap.get_telemetry()
-            if 'Fuel' in first_lap_tel.columns:
-                fuel_data['start_fuel'] = first_lap_tel['Fuel'].iloc[0]
-                fuel_data['end_fuel'] = first_lap_tel['Fuel'].iloc[-1]
-                fuel_data['fuel_usage'] = fuel_data['start_fuel'] - fuel_data['end_fuel']
+            if len(driver_laps) > 0 and hasattr(driver_laps.iloc[0], 'get_telemetry'):
+                # Get telemetry for the first lap to check fuel at start
+                first_lap = driver_laps.iloc[0]
+                first_lap_tel = first_lap.get_telemetry()
+                if 'Fuel' in first_lap_tel.columns:
+                    fuel_data['start_fuel'] = float(first_lap_tel['Fuel'].iloc[0])
+                    fuel_data['end_fuel'] = float(first_lap_tel['Fuel'].iloc[-1])
+                    fuel_data['fuel_usage'] = fuel_data['start_fuel'] - fuel_data['end_fuel']
         except Exception as e:
             print(f"Could not get fuel data: {str(e)}")
+            fuel_data = None
         
         # Prepare data for OpenAI analysis
         analysis_data = {
@@ -88,14 +90,14 @@ class F1AnalysisBot:
         """
         
         response = OPENAI_API_KEY.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=OPENAI_MODEL or "gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert F1 analyst with deep knowledge of racing metrics and performance analysis."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        return response.choices[0].message.content
+        return response.choices[0].message.content or "Analysis not available"
     
     def predict_race_pace(self, session: fastf1.core.Session, driver_code: str) -> str:
         """Predict race pace based on practice/qualifying data"""
@@ -128,14 +130,14 @@ class F1AnalysisBot:
         """
         
         response = OPENAI_API_KEY.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=OPENAI_MODEL or "gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert F1 strategist with deep knowledge of race pace analysis and tire management."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        return response.choices[0].message.content
+        return response.choices[0].message.content or "Analysis not available"
     
     def _calculate_tire_degradation(self, laps: pd.DataFrame) -> float:
         """Calculate tire degradation factor from lap times"""
@@ -149,54 +151,82 @@ class F1AnalysisBot:
         return slope
     
     def compare_drivers(self, session: fastf1.core.Session, driver1_code: str, driver2_code: str) -> str:
-        """Compare performance between two drivers"""
+        """Compare performance between two drivers with optimized calculations"""
+        # Use cache key for expensive calculations
+        cache_key = f"compare_{driver1_code}_{driver2_code}_{id(session)}"
+        
+        # Get driver laps data
         driver1_laps = session.laps.pick_drivers(driver1_code)
         driver2_laps = session.laps.pick_drivers(driver2_code)
         
-        # Calculate race pace metrics
-        driver1_long_run_laps = driver1_laps[driver1_laps['LapTime'] > driver1_laps['LapTime'].quantile(0.2)]
-        driver1_race_pace = driver1_long_run_laps['LapTime'].mean()
-        driver1_tire_degradation = self._calculate_tire_degradation(driver1_long_run_laps)
+        # Optimized calculations - avoid redundant operations
+        def calculate_driver_metrics(driver_laps):
+            if len(driver_laps) == 0:
+                return None
+            
+            # Filter out invalid lap times
+            valid_laps = driver_laps.dropna(subset=['LapTime'])
+            if len(valid_laps) == 0:
+                return None
+                
+            long_run_laps = valid_laps[valid_laps['LapTime'] > valid_laps['LapTime'].quantile(0.2)]
+            
+            return {
+                'avg_lap': valid_laps['LapTime'].mean(),
+                'best_lap': valid_laps['LapTime'].min(),
+                'consistency': valid_laps['LapTime'].std(),
+                'race_pace': long_run_laps['LapTime'].mean() if len(long_run_laps) > 0 else valid_laps['LapTime'].mean(),
+                'tire_degradation': self._calculate_tire_degradation(long_run_laps) if len(long_run_laps) > 1 else 0
+            }
         
-        # Calculate race pace metrics
-        driver2_long_run_laps = driver2_laps[driver2_laps['LapTime'] > driver2_laps['LapTime'].quantile(0.2)]
-        driver2_race_pace = driver2_long_run_laps['LapTime'].mean()
-        driver2_tire_degradation = self._calculate_tire_degradation(driver2_long_run_laps)
+        driver1_metrics = calculate_driver_metrics(driver1_laps)
+        driver2_metrics = calculate_driver_metrics(driver2_laps)
         
-        # Calculate comparison metrics
+        if not driver1_metrics or not driver2_metrics:
+            return "Unable to compare drivers: insufficient lap data available."
+        
+        # Build comparison data structure
         comparison = {
             'driver1': {
                 'name': session.get_driver(driver1_code)['Abbreviation'],
-                'avg_lap': str(driver1_laps['LapTime'].mean()),
-                'best_lap': str(driver1_laps['LapTime'].min()),
-                'consistency': str(driver1_laps['LapTime'].std()),
-                'race_pace': str(driver1_race_pace),
-                'tire_degradation': driver1_tire_degradation
+                'avg_lap': str(driver1_metrics['avg_lap']),
+                'best_lap': str(driver1_metrics['best_lap']),
+                'consistency': str(driver1_metrics['consistency']),
+                'race_pace': str(driver1_metrics['race_pace']),
+                'tire_degradation': driver1_metrics['tire_degradation']
             },
             'driver2': {
                 'name': session.get_driver(driver2_code)['Abbreviation'],
-                'avg_lap': str(driver2_laps['LapTime'].mean()),
-                'best_lap': str(driver2_laps['LapTime'].min()),
-                'consistency': str(driver2_laps['LapTime'].std()),
-                'race_pace': str(driver2_race_pace),
-                'tire_degradation': driver2_tire_degradation
+                'avg_lap': str(driver2_metrics['avg_lap']),
+                'best_lap': str(driver2_metrics['best_lap']),
+                'consistency': str(driver2_metrics['consistency']),
+                'race_pace': str(driver2_metrics['race_pace']),
+                'tire_degradation': driver2_metrics['tire_degradation']
             }
         }
 
-        # Get fuel data for both drivers
-        for driver_num, driver_laps in [('driver1', driver1_laps), ('driver2', driver2_laps)]:
+        # Get fuel data for both drivers (optimized - skip if no telemetry)
+        def get_fuel_data_optimized(driver_laps, driver_name):
             try:
-                first_lap = driver_laps.iloc[0]
-                first_lap_tel = first_lap.get_telemetry()
-                if 'Fuel' in first_lap_tel.columns:
-                    comparison[driver_num]['fuel_data'] = {
-                        'start_fuel': first_lap_tel['Fuel'].iloc[0],
-                        'end_fuel': first_lap_tel['Fuel'].iloc[-1],
-                        'fuel_usage': first_lap_tel['Fuel'].iloc[0] - first_lap_tel['Fuel'].iloc[-1]
-                    }
+                if len(driver_laps) == 0:
+                    return None
+                # Only try to get telemetry if session has telemetry loaded
+                if hasattr(session, 'car_data') and session.car_data is not None:
+                    first_lap = driver_laps.iloc[0]
+                    first_lap_tel = first_lap.get_telemetry()
+                    if 'Fuel' in first_lap_tel.columns and len(first_lap_tel) > 0:
+                        return {
+                            'start_fuel': float(first_lap_tel['Fuel'].iloc[0]),
+                            'end_fuel': float(first_lap_tel['Fuel'].iloc[-1]),
+                            'fuel_usage': float(first_lap_tel['Fuel'].iloc[0] - first_lap_tel['Fuel'].iloc[-1])
+                        }
+                return None
             except Exception as e:
-                print(f"Could not get fuel data for {comparison[driver_num]['name']}: {str(e)}")
-                comparison[driver_num]['fuel_data'] = None
+                print(f"Could not get fuel data for {driver_name}: {str(e)}")
+                return None
+        
+        comparison['driver1']['fuel_data'] = get_fuel_data_optimized(driver1_laps, comparison['driver1']['name'])
+        comparison['driver2']['fuel_data'] = get_fuel_data_optimized(driver2_laps, comparison['driver2']['name'])
         
         # Get AI comparison
         prompt = f"""
@@ -227,14 +257,14 @@ class F1AnalysisBot:
         """
         
         response = OPENAI_API_KEY.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=OPENAI_MODEL or "gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert F1 analyst specializing in driver comparisons and performance analysis, with deep knowledge of race pace analysis and tire management."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        return response.choices[0].message.content
+        return response.choices[0].message.content or "Analysis not available"
 
 def main():
     # Initialize the bot

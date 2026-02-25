@@ -6,12 +6,19 @@ import {
     Typography,
     MenuItem,
     CircularProgress,
+    Paper,
+    Collapse,
+    IconButton,
 } from '@mui/material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import { ComparisonFormData, CalendarEvent, SessionInfo } from '../types/f1';
 import ComparisonResult from './ComparisonResult';
 import { fetchYearCalendar, fetchGPSessions, fetchSessionDrivers } from '../services/openF1Api';
 
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 const DriverComparisonForm: React.FC = () => {
     const [formData, setFormData] = useState<ComparisonFormData>({
@@ -25,6 +32,8 @@ const DriverComparisonForm: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(false);
     const [comparisonResult, setComparisonResult] = useState<string>('');
+    const [showResult, setShowResult] = useState(true);
+    const [hasResult, setHasResult] = useState(false);
     
     // States for loaded data
     const [grandPrixList, setGrandPrixList] = useState<CalendarEvent[]>([]);
@@ -141,7 +150,7 @@ const DriverComparisonForm: React.FC = () => {
                 driver2: selectedDriver2?.nameAcronym || ''
             };
 
-            const response = await fetch('http://localhost:8000/api/v1/agent/compare-drivers', {
+            const response = await fetch(`${BACKEND_URL}/api/v1/agent/compare-drivers`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -150,22 +159,43 @@ const DriverComparisonForm: React.FC = () => {
             });
             const data = await response.json();
             setComparisonResult(data.analysis);
+            setHasResult(true);
+            setShowResult(true);
         } catch (error) {
             console.error('Error:', error);
             setComparisonResult('Error al obtener la comparación. Por favor, intente nuevamente.');
+            setHasResult(true);
+            setShowResult(true);
         } finally {
             setLoading(false);
         }
     };
 
+    const toggleResultPanel = () => {
+        setShowResult(!showResult);
+    };
+
     return (
-        <Box maxWidth="sm" sx={{ mx: 24, my: 10 }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{my: 3}}>
+        <Box sx={{ mx: { xs: 2, sm: 4, md: 6 }, my: { xs: 2, sm: 4 } }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ mb: 4, textAlign: 'center' }}>
                 Compare Drivers
             </Typography>
            
-            <form onSubmit={handleSubmit}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', lg: 'row' },
+                gap: 4,
+                alignItems: 'flex-start'
+            }}>
+                {/* Form Panel */}
+                <Box sx={{
+                    width: { xs: '100%', lg: hasResult ? '50%' : '100%' },
+                    maxWidth: hasResult ? 'none' : '600px',
+                    mx: hasResult ? 0 : 'auto'
+                }}>
+                    <Paper sx={{ p: 3, height: 'fit-content' }}>
+                        <form onSubmit={handleSubmit}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <TextField
                         select
                         fullWidth
@@ -246,19 +276,83 @@ const DriverComparisonForm: React.FC = () => {
                         ))}
                     </TextField>
                     
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        disabled={loading || loadingData || !formData.grand_prix || !formData.session || !formData.driver1 || !formData.driver2}
-                    >
-                        {loading ? <CircularProgress size={24} /> : 'Compare Drivers'}
-                    </Button>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    fullWidth
+                                    disabled={loading || loadingData || !formData.grand_prix || !formData.session || !formData.driver1 || !formData.driver2}
+                                    startIcon={loading ? null : <CompareArrowsIcon />}
+                                    sx={{ py: 1.5 }}
+                                >
+                                    {loading ? <CircularProgress size={24} /> : 'Compare Drivers'}
+                                </Button>
+                            </Box>
+                        </form>
+                    </Paper>
                 </Box>
-            </form>
 
-            <ComparisonResult result={comparisonResult} />
+                {/* Results Panel */}
+                {hasResult && (
+                    <Box sx={{
+                        width: { xs: '100%', lg: '50%' },
+                        display: { xs: 'none', lg: 'block' }
+                    }}>
+                        <Paper sx={{ height: 'fit-content', maxHeight: '80vh', overflow: 'hidden' }}>
+                            {/* Results Header */}
+                            <Box 
+                                sx={{ 
+                                    p: 2, 
+                                    borderBottom: 1, 
+                                    borderColor: 'divider',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={toggleResultPanel}
+                            >
+                                <Typography variant="h4" component="h2">
+                                    Comparison Result
+                                </Typography>
+                                <IconButton size="small">
+                                    {showResult ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                </IconButton>
+                            </Box>
+                            
+                            {/* Results Content */}
+                            <Collapse in={showResult}>
+                                <Box sx={{ 
+                                    p: 3, 
+                                    maxHeight: { lg: '60vh' }, 
+                                    overflow: 'auto',
+                                    '& h1, & h2, & h3, & h4, & h5, & h6': {
+                                        mt: 2,
+                                        mb: 1,
+                                        fontWeight: 600
+                                    },
+                                    '& p': {
+                                        mb: 2
+                                    },
+                                    '& ul, & ol': {
+                                        pl: 2,
+                                        mb: 2
+                                    }
+                                }}>
+                                    <ComparisonResult result={comparisonResult} isInPanel={true} />
+                                </Box>
+                            </Collapse>
+                        </Paper>
+                    </Box>
+                )}
+            </Box>
+
+            {/* Mobile Results (when no side panel) */}
+            {hasResult && (
+                <Box sx={{ display: { xs: 'block', lg: 'none' }, mt: 3 }}>
+                    <ComparisonResult result={comparisonResult} isInPanel={false} />
+                </Box>
+            )}
         </Box>
     );
 };
