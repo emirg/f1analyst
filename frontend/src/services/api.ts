@@ -28,16 +28,16 @@ async function fetchJSON<T>(url: string): Promise<T> {
 // --- Calendar ---
 
 export function getYearData(year: number): Promise<YearDataResponse> {
-    return fetchJSON<YearDataResponse>(`${API_BASE}/year-data/${encodeURIComponent(year)}`);
+    return fetchJSON<YearDataResponse>(`${API_BASE}/calendar/year-data/${encodeURIComponent(year)}`);
 }
 
 export function getYearCalendar(year: number): Promise<YearCalendarResponse> {
-    return fetchJSON<YearCalendarResponse>(`${API_BASE}/year-calendar/${encodeURIComponent(year)}`);
+    return fetchJSON<YearCalendarResponse>(`${API_BASE}/calendar/year-calendar/${encodeURIComponent(year)}`);
 }
 
 export function getGPSessions(year: number, gp: string): Promise<GPSessionsResponse> {
     return fetchJSON<GPSessionsResponse>(
-        `${API_BASE}/gp-sessions/${encodeURIComponent(year)}/${encodeURIComponent(gp)}`
+        `${API_BASE}/calendar/gp-sessions/${encodeURIComponent(year)}/${encodeURIComponent(gp)}`
     );
 }
 
@@ -110,5 +110,5 @@ export function getConstructorStandings(year: number): Promise<ConstructorStandi
 // --- Dashboard ---
 
 export function getDashboardOverview(year: number): Promise<DashboardOverview> {
-    return fetchJSON<DashboardOverview>(`${API_BASE}/dashboard/overview/${encodeURIComponent(year)}`);
+    return fetchJSON<DashboardOverview>(`${API_BASE}/dashboard/overview?year=${encodeURIComponent(year)}`);
 }
