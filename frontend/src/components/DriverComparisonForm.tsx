@@ -15,10 +15,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import { ComparisonFormData, CalendarEvent, SessionInfo } from '../types/f1';
 import ComparisonResult from './ComparisonResult';
-import { fetchYearCalendar, fetchGPSessions, fetchSessionDrivers } from '../services/openF1Api';
+import { getYearCalendar, getGPSessions, getSessionDrivers } from '../services/api';
 
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 const DriverComparisonForm: React.FC = () => {
     const [formData, setFormData] = useState<ComparisonFormData>({
@@ -38,7 +38,7 @@ const DriverComparisonForm: React.FC = () => {
     // States for loaded data
     const [grandPrixList, setGrandPrixList] = useState<CalendarEvent[]>([]);
     const [sessionsList, setSessionsList] = useState<SessionInfo[]>([]);
-    const [driversList, setDriversList] = useState<Array<{fullName: string, nameAcronym: string}>>([]);
+    const [driversList, setDriversList] = useState<string[]>([]);
 
     // Load Grand Prix when year changes
     useEffect(() => {
@@ -47,8 +47,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const calendar = await fetchYearCalendar(formData.year);
-                setGrandPrixList(calendar);
+                const response = await getYearCalendar(formData.year);
+                setGrandPrixList(response.calendar);
                 // Reset selections when year changes
                 setFormData(prev => ({
                     ...prev,
@@ -76,8 +76,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const sessions = await fetchGPSessions(formData.year, formData.grand_prix);
-                setSessionsList(sessions);
+                const response = await getGPSessions(formData.year, formData.grand_prix);
+                setSessionsList(response.sessions);
                 // Reset session and driver selections
                 setFormData(prev => ({
                     ...prev,
@@ -103,8 +103,8 @@ const DriverComparisonForm: React.FC = () => {
             
             setLoadingData(true);
             try {
-                const drivers = await fetchSessionDrivers(formData.grand_prix, formData.session);
-                setDriversList(drivers);
+                const response = await getSessionDrivers(formData.year, formData.grand_prix, formData.session);
+                setDriversList(response.drivers);
                 // Reset driver selections
                 setFormData(prev => ({
                     ...prev,
@@ -136,21 +136,15 @@ const DriverComparisonForm: React.FC = () => {
             // Find the selected Grand Prix and Session objects
             const selectedGP = grandPrixList.find(gp => gp.meeting_key === formData.grand_prix);
             const selectedSession = sessionsList.find(session => session.session_key === formData.session);
-            
-            // Find the selected drivers to get their name_acronym
-            const selectedDriver1 = driversList.find(driver => driver.fullName === formData.driver1);
-            const selectedDriver2 = driversList.find(driver => driver.fullName === formData.driver2);
 
             // Create the request body with the names instead of keys
             const requestBody = {
                 ...formData,
                 grand_prix: selectedGP?.event_name || '',
                 session: selectedSession?.type || '',
-                driver1: selectedDriver1?.nameAcronym || '',
-                driver2: selectedDriver2?.nameAcronym || ''
             };
 
-            const response = await fetch(`${BACKEND_URL}/api/v1/agent/compare-drivers`, {
+            const response = await fetch(`${API_BASE}/agent/compare-drivers`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -254,8 +248,8 @@ const DriverComparisonForm: React.FC = () => {
                         disabled={loadingData || !formData.session}
                     >
                         {driversList.map((driver) => (
-                            <MenuItem key={driver.fullName} value={driver.fullName}>
-                                {driver.fullName}
+                            <MenuItem key={driver} value={driver}>
+                                {driver}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -270,8 +264,8 @@ const DriverComparisonForm: React.FC = () => {
                         disabled={loadingData || !formData.session}
                     >
                         {driversList.map((driver) => (
-                            <MenuItem key={driver.fullName} value={driver.fullName}>
-                                {driver.fullName}
+                            <MenuItem key={driver} value={driver}>
+                                {driver}
                             </MenuItem>
                         ))}
                     </TextField>

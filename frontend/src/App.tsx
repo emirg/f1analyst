@@ -1,44 +1,32 @@
 import React from 'react';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import Navbar from './components/Navbar';
-import DriverComparisonForm from './components/DriverComparisonForm';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#141414', // Dark gray
-    },
-    background: {
-      default: '#ffffff', // White background
-      paper: '#ffffff',
-    },
-  },
-  typography: {
-    fontFamily: '"Plus Jakarta Sans", "Helvetica", "Arial", sans-serif',
-    h3: {
-      fontWeight: 800,
-      fontSize: 20
-    },    
-    h4: {
-      fontWeight: 700,
-      fontSize: 18
-    },
-    h6: {
-      fontWeight: 500,
-      fontSize: 14
-    },
-  },
-});
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import theme from './theme';
+import { YearProvider } from './contexts/YearContext';
+import AppLayout from './components/layout/AppLayout';
+import DashboardPage from './pages/DashboardPage';
+import CalendarPage from './pages/CalendarPage';
+import ComparisonPage from './pages/ComparisonPage';
+import StandingsPage from './pages/StandingsPage';
 
 function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Navbar />
-      <DriverComparisonForm />
-    </ThemeProvider>
-  );
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <BrowserRouter>
+                <YearProvider>
+                    <Routes>
+                        <Route element={<AppLayout />}>
+                            <Route path="/" element={<DashboardPage />} />
+                            <Route path="/calendar" element={<CalendarPage />} />
+                            <Route path="/comparison" element={<ComparisonPage />} />
+                            <Route path="/standings" element={<StandingsPage />} />
+                        </Route>
+                    </Routes>
+                </YearProvider>
+            </BrowserRouter>
+        </ThemeProvider>
+    );
 }
 
 export default App;
