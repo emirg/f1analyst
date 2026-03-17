@@ -1,12 +1,11 @@
 import React from 'react';
-import { Box, TextField, MenuItem, Typography, useMediaQuery } from '@mui/material';
+import { Box, TextField, MenuItem, Typography } from '@mui/material';
 import { useYear } from '../../contexts/YearContext';
 
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
 const Header: React.FC = () => {
     const { year, setYear } = useYear();
-    const collapsed = useMediaQuery('(max-width:1024px)');
 
     return (
         <Box sx={{
