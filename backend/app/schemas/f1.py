@@ -91,4 +91,111 @@ class SessionDriversResponse(BaseModel):
 class YearDataResponse(BaseModel):
     grand_prix: List[str]
     drivers: List[str]
-    driver_names: List[str] 
+    driver_names: List[str]
+
+class LapTimeEntry(BaseModel):
+    lap_number: int
+    driver: str
+    time_seconds: float
+    compound: Optional[str] = None
+
+class ComparisonLapsResponse(BaseModel):
+    driver1: str
+    driver2: str
+    laps: List[LapTimeEntry]
+
+class TelemetryPoint(BaseModel):
+    distance: float
+    speed: float
+    throttle: float
+    brake: bool
+
+class DriverTelemetry(BaseModel):
+    driver: str
+    team_color: str
+    data: List[TelemetryPoint]
+
+class ComparisonTelemetryResponse(BaseModel):
+    driver1: DriverTelemetry
+    driver2: DriverTelemetry
+
+class SectorTime(BaseModel):
+    driver: str
+    sector1: float
+    sector2: float
+    sector3: float
+
+class ComparisonSectorsResponse(BaseModel):
+    driver1: SectorTime
+    driver2: SectorTime
+
+class Stint(BaseModel):
+    stint_number: int
+    compound: str
+    lap_start: int
+    lap_end: int
+    laps: int
+
+class DriverStrategy(BaseModel):
+    driver: str
+    stints: List[Stint]
+
+class ComparisonStrategyResponse(BaseModel):
+    driver1: DriverStrategy
+    driver2: DriverStrategy
+
+class PositionEntry(BaseModel):
+    lap_number: int
+    driver: str
+    position: int
+
+class ComparisonPositionsResponse(BaseModel):
+    driver1: str
+    driver2: str
+    positions: List[PositionEntry]
+
+class ComparisonQueryParams(BaseModel):
+    year: int
+    gp: str
+    session: str
+    driver1: str
+    driver2: str
+
+class DriverStanding(BaseModel):
+    position: int
+    driver: str
+    driver_abbreviation: str
+    team: str
+    team_color: str
+    points: float
+
+class StandingsResponse(BaseModel):
+    year: int
+    standings: List[DriverStanding]
+
+class ConstructorStanding(BaseModel):
+    position: int
+    team: str
+    team_color: str
+    points: float
+
+class ConstructorStandingsResponse(BaseModel):
+    year: int
+    standings: List[ConstructorStanding]
+
+class NextRace(BaseModel):
+    event_name: str
+    round_number: int
+    date: str
+    country: Optional[str] = None
+
+class LastRaceResult(BaseModel):
+    event_name: str
+    top5: List[DriverStanding]
+
+class DashboardOverview(BaseModel):
+    year: int
+    next_race: Optional[NextRace] = None
+    last_race: Optional[LastRaceResult] = None
+    driver_standings_top10: List[DriverStanding]
+    constructor_standings_top10: List[ConstructorStanding]
